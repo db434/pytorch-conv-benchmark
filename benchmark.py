@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import torch
+import pickle
 
 
 def main():
@@ -17,13 +18,36 @@ def main():
     parser.add_argument("--groups", type=int, default=1)
     parser.add_argument("--internal", action="store_true")
     parser.add_argument("--cpu_only", action="store_true")
+    parser.add_argument("--test", action="store_false")
 
     args = parser.parse_args()
 
-    if args.internal:
-        internal(args)
+    if args.test:
+        if args.internal:
+            internal(args)
+        else:
+            wrapper(args)
     else:
-        wrapper(args)
+        if args.internal:
+            internal(args)
+        else:
+            datas = []
+            params = {
+                '--in-channels': [16, 32, 64, 128, 256, 512, 1024, 2048],
+                '--out-channels': [16, 32, 64, 128, 256, 512, 1024, 2048],
+                '--kernel_size': [1, 2, 3, 4, 5, 6, 7, 8, 16, 32],
+                '--stride': [1, 2],
+                '--dilation': [1, 2],
+                '--groups': [1, 2, 4, 8, 16, 32, 64, 128],
+            }
+            datas = {}
+            for target, values in params.items():
+                datas[target] = []
+                for test_value in values:
+                    data = custom_wrapper(args, target, test_value)
+                    datas[target].append(data)
+            with open('profil.pkl', 'wb') as f:
+                pickle.dump(datas, f)
 
 
 def wrapper(args):
@@ -44,6 +68,38 @@ def wrapper(args):
     print(profile.key_averages())
 
     os.remove("trace.prof")
+
+
+def custom_wrapper(args, changed_param, value):
+    command = "nvprof --quiet --profile-from-start off -o trace.prof -- "
+    print('Extra args: {} set to {}'.format(changed_param, value))
+    command += "python3 " + " ".join(sys.argv[:]) + " --internal " + \
+        changed_param + '={}'.format(value)
+
+    if os.path.exists("trace.prof"):
+        print("Removing old trace file", file=stderr)
+        os.remove("trace.prof")
+
+    subprocess.run(command, shell=True)
+
+    # Now read the trace file.
+    profile = torch.autograd.profiler.load_nvprof("trace.prof")
+    print(profile.key_averages())
+    data = parse_profiled_event(profile[0])
+
+    os.remove("trace.prof")
+    return data
+
+
+def parse_profiled_event(event):
+    '''
+    http://pytorch.org/docs/master/_modules/torch/autograd/profiler.html
+    '''
+    cpu_time = event.cpu_time
+    gpu_time = event.cuda_time
+    cpu_total = event.cpu_time_total
+    gpu_total = event.cuda_time_total
+    return [cpu_time, gpu_time, cpu_total, gpu_total]
 
 
 def internal(args):
