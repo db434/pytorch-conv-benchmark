@@ -46,7 +46,7 @@ def main():
                 for test_value in values:
                     data = custom_wrapper(args, target, test_value)
                     datas[target].append(data)
-            with open('profil.pkl', 'wb') as f:
+            with open('profile.pkl', 'wb') as f:
                 pickle.dump(datas, f)
 
 
