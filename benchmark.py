@@ -136,7 +136,7 @@ def test(model, data, iterations=100):
     """Apply the model to the data `iterations` times."""
     for i in range(iterations):
         output = model(data)
-        #output.backward(gradient=output)
+        # output.backward(gradient=output)
 
 
 if __name__ == "__main__":
