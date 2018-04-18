@@ -18,7 +18,7 @@ def main():
     parser.add_argument("--groups", type=int, default=1)
     parser.add_argument("--internal", action="store_true")
     parser.add_argument("--cpu_only", action="store_true")
-    parser.add_argument("--test", action="store_false")
+    parser.add_argument("--test", action="store_true")
 
     args = parser.parse_args()
 
