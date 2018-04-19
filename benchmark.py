@@ -85,7 +85,7 @@ def custom_wrapper(args, changed_param, value):
     # Now read the trace file.
     profile = torch.autograd.profiler.load_nvprof("trace.prof")
     print(profile.key_averages())
-    data = parse_profiled_event(profile.total_averages)
+    data = parse_profiled_event(profile.total_average())
 
     os.remove("trace.prof")
     return data
