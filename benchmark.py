@@ -58,7 +58,7 @@ def wrapper(args):
     command += "python3 " + " ".join(sys.argv[:]) + " --internal"
 
     if os.path.exists("trace.prof"):
-        print("Removing old trace file", file=stderr)
+        print("Removing old trace file")
         os.remove("trace.prof")
 
     subprocess.run(command, shell=True)
@@ -77,7 +77,7 @@ def custom_wrapper(args, changed_param, value):
         changed_param + '={}'.format(value)
 
     if os.path.exists("trace.prof"):
-        print("Removing old trace file", file=stderr)
+        print("Removing old trace file")
         os.remove("trace.prof")
 
     subprocess.run(command, shell=True)
@@ -85,7 +85,7 @@ def custom_wrapper(args, changed_param, value):
     # Now read the trace file.
     profile = torch.autograd.profiler.load_nvprof("trace.prof")
     print(profile.key_averages())
-    data = parse_profiled_event(profile[0])
+    data = parse_profiled_event(profile.total_averages)
 
     os.remove("trace.prof")
     return data
@@ -97,9 +97,7 @@ def parse_profiled_event(event):
     '''
     cpu_time = event.cpu_time
     gpu_time = event.cuda_time
-    cpu_total = event.cpu_time_total
-    gpu_total = event.cuda_time_total
-    return [cpu_time, gpu_time, cpu_total, gpu_total]
+    return [cpu_time, gpu_time]
 
 
 def internal(args):
